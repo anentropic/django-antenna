@@ -1,11 +1,14 @@
 from django.conf import settings
 from django.db import models
-from django.utils.translation import ugettext, ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _
 try:
     from django.utils.timezone import now  # Django 1.4 aware datetimes
 except ImportError:
     from datetime import datetime
     now = datetime.now
+
+
+from .constants import DEFAULT_TAGS
 
 
 SUBJECT_MAX_LENGTH = getattr(settings, 'SUBJECT_MAX_LENGTH', 120)
@@ -23,6 +26,13 @@ class BaseMessage(models.Model):
 
 
 class RecipientsMixin(models.Model):
+    """
+    As a mixin, to allow you to substitute your own through model.
+
+    NOTE:
+    You *must* implement a `recipients` field, either using this or your own
+    mixin class.
+    """
     class Meta:
         abstract = True
 
@@ -30,7 +40,11 @@ class RecipientsMixin(models.Model):
                                    through='MessageUser')
 
 
-class Message(RecipientsMixin, BaseMessage):
+class MessageLevelsMixin(models.Model):
+    level = models.SmallIntegerField(choices=DEFAULT_TAGS.items())
+
+
+class Message(MessageLevelsMixin, RecipientsMixin, BaseMessage):
     pass
 
 
@@ -39,7 +53,8 @@ class BaseMessageUser(models.Model):
         abstract = True
 
     message = models.ForeignKey('Message')
-    user = models.FoerignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             related_name='antenna_messages')
 
     read = models.BooleanField(default=False)
     sent_at = models.DateTimeField(_("sent at"), default=now)
