@@ -1,3 +1,6 @@
+UNDER CONSTRUCTION
+==================
+
 django-antenna
 ==============
 
